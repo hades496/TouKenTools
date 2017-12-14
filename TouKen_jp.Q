@@ -13,10 +13,12 @@ TempClickX = 0 //上次点击坐标
 TempClickY = 0
 SizeX = 0 //窗口大小 
 SizeY = 0
+CheckPointName = array("本丸","出阵准备","地图选择","出阵确认","大地图","阵型选择","战斗结算","出阵前刀装缺失","刀装","大阪城重复通关","新刀发现","新刀发现","大阪城首次通关")
+
 //------------------------------出阵UI参数------------------------------//
 firstFlag = 0//首次出阵标记
-AgePointX = array(205 , 320 ) //出阵时代按钮坐标
-AgePointY = array(175, 180)
+AgePointX = array(210 , 320, 430, 540) //出阵时代按钮坐标
+AgePointY = array(175, 175, 175, 175)
 StagePointX = array(250 , 500, 250 , 500)//出阵战场按钮坐标
 StagePointY = array(315, 315, 415, 415)
 ExGoY = 460
@@ -30,10 +32,13 @@ ChuZhenPicX = 460			//出阵标志
 ChuZhenPicY = 190
 LeftArrowX = 143			//时代选择左箭头
 LeftArrowY = 175
-RightArrowX = 377			//时代选择右箭头 
+RightArrowX = 377//时代选择右箭头 
 RightArrowY = 177
+NormalRightArrowX = 600
+NormalRightArrowY = 175
+
 TroopsChooseX = 700 		//部队选择
-TroopsChooseY = 485
+TroopsChooseY = 520
 LeaveX = 625 				//立刻出阵
 LeaveY = 500
 FormationX = array(109, 372, 633, 109, 372, 633)//阵型按钮坐标 
@@ -88,6 +93,8 @@ Sub Init//初始化设置
 	XYArray = Split(s, "|", - 1 , 1)//窗口点击偏移
 	DELTAX = XYArray(0)
 	DELTAY = XYarray(1)
+	SizeX = XYArray(2) - XYArray(0)
+	SizeY = XYArray(3) - XYArray(1)
 	PutToList Cstr(XYarray(0))&" "&Cstr(XYarray(1))&" "&Cstr(XYarray(2))&" "&Cstr(XYarray(3))
 	PutToList "获取到全局偏移"
 	age = main.AgeList.ListIndex //获取时代
@@ -101,6 +108,11 @@ Sub Init//初始化设置
 	PutToList "初始化完毕"
 End Sub
 
+Sub ABClick(intX, intY)
+	dm.MoveTo intX, intY
+	dm.LeftClick 
+	Delay 1000
+End Sub
 
 
 Function GetNowPos//获取当前状态
@@ -111,7 +123,7 @@ Function GetNowPos//获取当前状态
 	i = 0
 	While intX < 0 and intY < 0
 		For i = 0 To TOTALPOS - 1
-			dm.FindPic 0, 0, 1920, 1080, "CheckPoint" & Cstr(i) & ".bmp", 000000, 0.9, dir, intX, intY
+			dm.FindPic 0, 0, SizeX, SizeY, "CheckPoint" & Cstr(i) & ".bmp", 000000, 0.9, dir, intX, intY
 			//FindPic 0, 0, 1024, 768, "Attachment:\CheckPoint" & Cstr(i) & ".bmp", 0.9, intX, intY
 			If intX >= 0 and intY >= 0 Then 
 				//CheckPointX = intX - DELTAX
@@ -131,41 +143,24 @@ Function GetNowPos//获取当前状态
 	//PutToList "检查点坐标(" & Cstr(CheckPointX) & "," & Cstr(CheckPointY) & ")"
 End Function
 
-Function FindAndClick(image) //寻找并点击image : string
-	intX = - 1 
-	intY = - 1 
-	PutToList "开始查找"&image
-	//FindPic 0, 0, 1920, 1080, "Attachment:\" & image, 0.9, intX, intY
-	dm.FindPic 0, 0, 1920, 1080, image, 000000, 0.9, dir, intX, intY
-	If intX >= 0 and intY >= 0 Then 
-		Delay 1000
-		PutToList "恭喜，已找到" & image
-		//dm.MoveTo intX - DELTAX, intY - DELTAY
-		dm.MoveTo intX, intY
-		dm.LeftClick
-		//Plugin.Bkgnd.LeftClick HWND, intX - DELTAX , intY - DELTAY
-		FindAndClick = 1
-	Else 
-		PutToList "抱歉，没有找到"&image
-		FindAndClick = 0
-	End If
-End Function
 
-
+//------------------------------主程序入口------------------------------//
 Init //初始化设置
 nowStep = 0
+nowPos = -1
 While True
-	tempStep = GetNowPos()//获取当前状态
-	If tempStep = nowPos and nowPos <> 6 Then 
+	tempPos = GetNowPos()//获取当前状态
+	//If tempPos = nowPos and nowPos <> 6 and nowPos <> 4 Then 
+	If false Then 
 		Delay 1000
 	Else 
-		nowPos = tempStep
+		nowPos = tempPos
 		Select Case nowPos
 			Case 0 //处在本丸
 				nowStep = 0
-				Click 882, 59
+				ABClick BianDuiX, BianDuiY
 			Case 1 //处在出阵图
-				Click 0 , 0
+				ABClick ChuZhenPicX, ChuZhenPicY
 			Case 2//处在时代选择
 				If firstFlag = 0 Then 
 					firstFlag = 1
@@ -173,78 +168,94 @@ While True
 					PutToList "获取到时代"
 					stage = main.StageList.ListIndex//获取战场
 					PutToList "获取到战场"
-					While FindAndClick("LeftArrow.bmp")
-					Wend
-					For i = 1 To age/2
-						FindAndClick ("RightArrow.bmp")
+					For i = 1 To 4
+					 	ABClick LeftArrowX, LeftArrowY
+					Next
+					PerPage = 4
+					If main.EventCheck.Value  Then 
+						PerPage = 2
+					End If
+					For i = 1 To age / Perpage
+						If main.EventCheck.Value Then  
+							ABClick RightArrowX, RightArrowY
+						Else 
+							ABClick NormalRightArrowX, NormalRightArrowY
+						End If
 					Next
 					PutToList "点击时代"
-					Click AgePointX(age Mod 2), AgePointY(age Mod 2)
+					ABClick AgePointX(age Mod PerPage), AgePointY(age Mod PerPage)
 					PutToList "点击地区"
-					Click StagePointX(stage), StagePointY(stage)					
+					ABClick StagePointX(stage), StagePointY(stage)					
 				End If
-				PutToList "点击出阵"
-				Click 300, 460
+				PutToList "点击部队选择"
+				ABClick TroopsChooseX, TroopsChooseY
 			Case 3 //处在出阵确认
-				Click 244, 445
+				ABClick LeaveX,LeaveY
 			Case 4 //处在大地图
-				Click 0, 0
+				ABClick 300, 300
 			Case 5//处在阵型选择
-				formation = main.FormationList.ListIndex//获取阵型				
+				formation = main.FormationList.ListIndex//获取阵型
 				PutToList "获取到默认阵型"
 				If formation = 6 Then 
-					Delay 3000
-					If FindAndClick("BestFormation.bmp") = 0
-						Click FormationX(1), FormationY(1)
+					i = 0
+					For i = 0 To 5
+						PutToList dm.GetColor(FormationX(i), FormationY(i))
+						If dm.CmpColor(FormationX(i), FormationY(i), "C50202-111111", 0.90) = 0 Then 
+							ABClick FormationX(i), FormationY(i)
+							Exit For
+						End If
+					Next
+					If i > 5 Then 
+						ABClick FormationX(1), FormationY(1)
 					End If
 				Else
-					Click FormationX(formation), FormationY(formation)
+					ABClick FormationX(formation), FormationY(formation)
 				End If
 				
 				nowStep = nowStep + 1
 				TotalFight = TotalFight + 1
 				main.TotalFight.Caption = Cstr(TotalFight) & "次"
-				//PutToList "已经前进了" & Cstr(nowStep) & "次"
-				//PutToList "已经战斗了" & Cstr(TotalFight) & "次"
 				Delay 10000
 			Case 6//处在结算界面
 				targetStep = main.StepList.ListIndex//获取前进次数
 				PutToList "获取到前进次数"
 				If nowStep = targetStep and targetStep>0 Then 
 					PutToList "返回本丸"
-					nowStep = 0
-					Click 400, 330
-					Click 400, 400
+					ABClick FightReturnX, FightReturnY
 				Else 
 					PutToList "继续行军"
-					Click 180, 330
-					Click 180, 400
+					ABClick FightContinueX, FightContinueY
 				End If
 			Case 7 //出阵前刀装缺失
 				Click 0, 0
 			Case 8//补充刀装
 				Delay 2000
-				While FindAndClick("equipment.bmp")
-					Delay 2000
-					For Si = 0 To 2
-						While FindAndClick(SpaceBlank(Si))
-							For i = 0 To 5
-								Delay 2000
-								If FindAndClick(EquipList(i)) Then
-									Exit For
+				For i = 0 To 5
+					If dm.CmpColor(EquipButtonX(i), EquipButtonY(i), "D60000", 0.90) = 0 Then 
+						ABClick EquipButtonX(i), EquipButtonY(i)
+						For j = 0 To 2
+							If dm.CmpColor(AddButtonX(j), AddButtonY(j), "FFFFFF", 0.90) = 0 Then 
+								ABClick AddButtonX(j), AddButtonY(j)
+								For k = 0 To 5
+									If dm.CmpColor(EquipChangeX(k), EquipChangeY(k), "F3F3F3", 0.90) = 0 Then 
+										Exit For
+									End If
+								Next
+								If k > 5 Then 
+									PutToList "刀装已用完！"
+									ExitScript
 								End If
-							Next
-							Delay 2000
-							FindAndClick ("ChangeEquip.bmp")
-							Delay 2000
-						Wend
-					Next
-					Delay 2000
-					FindAndClick ("ReturnButton.bmp")
-					Delay 2000
-				Wend
+								ABClick EquipChangeX(k), EquipChangeY(k)
+								ABClick EquipChangeX(k), EquipChangeY(k)
+								Delay 2000
+							End If
+						Next
+						ABClick EquipReturnX, EquipReturnY
+						Delay 2000
+					End If
+				Next
 				Delay 2000
-				FindAndClick ("Gohome.bmp")
+				ABClick ChuZhenX, ChuZhenY
 			Case 9//千两箱重复通关
 				If main.OusakaLoop.Value Then 
 					Click 80, - 160 //继续	
@@ -252,10 +263,13 @@ While True
 					Click 300, - 160 //返回
 				End If
 			Case 10,11,13,14 //发现刀剑
-				Click 0, 0
+				ABClick 300, 300
+				
+				Delay 2000
 				TotalTouKen = TotalTouKen + 1
 				PutToList "发现刀剑"
 				main.TouKenNum.Caption = Cstr(TotalTouKen) & "把"
+				ABClick 300, 300
 			Case 12//千两箱首次通关
 				If main.OusakaLoop.Value Then 
 					Click 80, - 160 //继续	
@@ -265,6 +279,7 @@ While True
 		End Select
 	End If
 Wend
+
 
 
 Sub PutToList(str)
