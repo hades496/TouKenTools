@@ -1,4 +1,4 @@
-TOTALPOS = 15
+TOTALPOS = 17
 WAITETIME = 10000
 DELTAX = 0
 DELTAY = 0
@@ -13,7 +13,8 @@ TempClickX = 0 //上次点击坐标
 TempClickY = 0
 SizeX = 0 //窗口大小 
 SizeY = 0
-CheckPointName = array("本丸","出阵准备","地图选择","出阵确认","大地图","阵型选择","战斗结算","出阵前刀装缺失","刀装","大阪城重复通关","新刀发现","新刀发现","大阪城首次通关")
+dir = 0
+CheckPointName = array("本丸","出阵准备","地图选择","出阵确认","大地图","阵型选择","战斗结算","出阵前刀装缺失","刀装","大阪城重复通关","新刀发现","新刀发现","大阪城首次通关","新刀发现","新刀发现","远征结束","远征界面")
 
 //------------------------------出阵UI参数------------------------------//
 firstFlag = 0//首次出阵标记
@@ -30,6 +31,8 @@ BianDuiX = 910 				//主界面编队按钮
 BianDuiY = 150
 ChuZhenPicX = 460			//出阵标志
 ChuZhenPicY = 190
+ExpeditionX = 270 			//远征标志
+ExpeditionY = 400
 LeftArrowX = 143			//时代选择左箭头
 LeftArrowY = 175
 RightArrowX = 377//时代选择右箭头 
@@ -50,16 +53,33 @@ FightReturnY = 425
 //------------------------------出阵UI参数------------------------------//
 
 //------------------------------远征UI参数------------------------------//
-ExAgePointX = array(175, 275, 375, 475) //远征时代按钮坐标
-ExAgePointY = array(125, 125, 125, 125)
-ExStagePointX = array(200, 200, 200, 200) //远征战场按钮坐标
-ExStagePointY = array(225, 255, 285, 315)
-ExGoX = 660//远征确认按钮
+ExAgeX = array(200, 300, 400, 500) //远征时代按钮坐标
+ExAgeY = array(190, 190, 190, 190)
+ExStageX = array(200, 200, 200, 200) //远征战场按钮坐标
+ExStageY = array(290, 320, 350, 380)
+ExGoX = 680//远征确认按钮
+ExGoY = 520
+
+ExTeamX = array(735, 735, 735) //远征队伍按钮
+ExTeamY = array(240, 370, 500)
+ExReturnX = 735 
+ExReturnY = 65
+
+
+ExCount = array(0, 0, 0)
+ExSuccessCount = array(0, 0, 0)
+
+
+
 //------------------------------远征UI参数------------------------------//
 
 //------------------------------编队UI参数------------------------------//
 EquipReturnX = 326
 EquipReturnY = 552
+
+EquipBlankX = array(500, 535, 570)
+EquipBlankY = array(135, 212, 289, 366, 443, 520)
+
 EquipButtonX = array(745, 745, 745, 745, 745, 745)
 EquipButtonY = array(131, 208, 285, 362, 439, 516)
 AddButtonX = array(540, 540, 540)
@@ -68,7 +88,7 @@ EquipChangeX = array(317, 317, 317, 317, 317, 317)
 EquipChangeY = array(489, 411, 333, 255, 177, 99)
 //------------------------------编队UI参数------------------------------//
 
-
+TracePrint Cstr(main.InExpedition2.Value)
 
 Sub Init//初始化设置
 	PutToList "开始初始化"
@@ -144,6 +164,16 @@ Function GetNowPos//获取当前状态
 End Function
 
 
+Sub GoExpedition(ExAge, ExStage, ExTeam)
+	ABClick ExAgeX(ExAge), ExAgeY(ExAge)
+	ABClick ExStageX(ExStage), ExStageY(ExStage)
+	ABClick ExGoX, ExGoY
+	ABClick ExTeamX(ExTeam), ExTeamY(ExTeam)
+	ABClick ExGoX, ExGoY	
+End Sub
+
+
+
 //------------------------------主程序入口------------------------------//
 Init //初始化设置
 nowStep = 0
@@ -157,10 +187,14 @@ While True
 		nowPos = tempPos
 		Select Case nowPos
 			Case 0 //处在本丸
-				nowStep = 0
+				nowStep = 0				
 				ABClick BianDuiX, BianDuiY
-			Case 1 //处在出阵图
-				ABClick ChuZhenPicX, ChuZhenPicY
+			Case 1//处在出阵图
+				If main.InExpedition2.Value = 0 and main.ExTeam2.Value = 1 or main.InExpedition3.Value = 0 and main.ExTeam3.Value = 1 or main.InExpedition4.Value = 0 and main.ExTeam4.Value = 1 Then 
+					ABClick ExpeditionX, ExpeditionY
+				Else
+					ABClick ChuZhenPicX, ChuZhenPicY
+				End If
 			Case 2//处在时代选择
 				If firstFlag = 0 Then 
 					firstFlag = 1
@@ -226,12 +260,15 @@ While True
 					PutToList "继续行军"
 					ABClick FightContinueX, FightContinueY
 				End If
-			Case 7 //出阵前刀装缺失
-				Click 0, 0
 			Case 8//补充刀装
 				Delay 2000
 				For i = 0 To 5
-					If dm.CmpColor(EquipButtonX(i), EquipButtonY(i), "D60000", 0.90) = 0 Then 
+					For j = 0 To 2
+						If dm.CmpColor(EquipBlankX(j), EquipBlankY(i), "FFFFFF", 0.90) = 0 Then 
+							Exit For
+						End If
+					Next
+					If (j < 3) Then 
 						ABClick EquipButtonX(i), EquipButtonY(i)
 						For j = 0 To 2
 							If dm.CmpColor(AddButtonX(j), AddButtonY(j), "FFFFFF", 0.90) = 0 Then 
@@ -256,26 +293,74 @@ While True
 				Next
 				Delay 2000
 				ABClick ChuZhenX, ChuZhenY
+			Case 10,11,13,14 //发现刀剑
+				ABClick 300, 300
+				Delay 2000
+				TotalTouKen = TotalTouKen + 1
+				PutToList "发现刀剑"
+				main.TouKenNum.Caption = Cstr(TotalTouKen) & "把"
+				ABClick 300, 300
 			Case 9//千两箱重复通关
 				If main.OusakaLoop.Value Then 
 					Click 80, - 160 //继续	
 				Else 
 					Click 300, - 160 //返回
 				End If
-			Case 10,11,13,14 //发现刀剑
-				ABClick 300, 300
-				
-				Delay 2000
-				TotalTouKen = TotalTouKen + 1
-				PutToList "发现刀剑"
-				main.TouKenNum.Caption = Cstr(TotalTouKen) & "把"
-				ABClick 300, 300
 			Case 12//千两箱首次通关
 				If main.OusakaLoop.Value Then 
 					Click 80, - 160 //继续	
 				Else 
 					Click 300, - 160 //返回
 				End If
+			Case 15//远征结束
+				If dm.FindPic(0 ,0 ,SizeX, SizeY, "ExTeam2.bmp", 000000, 0.9, dir, intX, intY) <> - 1  Then 
+					main.InExpedition2.Value = 0
+					If dm.FindPic(0, 0, SizeX, SizeY, "ExSuccess.bmp|ExSuperSuccess.bmp", 000000, 0.9, dir, intX, intY) <> - 1  Then 
+						ExSuccessCount(0) = ExSuccessCount(0) + 1
+					End If
+					ExCount(0) = ExCount(0) + 1
+					main.ExCount2.Caption = Cstr(ExSuccessCount(0))&"/"&Cstr(ExCount(0))
+					ABClick 300, 300
+				End If
+				If dm.FindPic(0 ,0 ,SizeX, SizeY, "ExTeam3.bmp", 000000, 0.9, dir, intX, intY) <> - 1  Then 
+					main.InExpedition3.Value = 0
+					If dm.FindPic(0, 0, SizeX, SizeY, "ExSuccess.bmp|ExSuperSuccess.bmp", 000000, 0.9, dir, intX, intY) <> - 1  Then 
+						ExSuccessCount(1) = ExSuccessCount(1) + 1
+					End If
+					ExCount(1) = ExCount(1) + 1
+					main.ExCount3.Caption = Cstr(ExSuccessCount(1))&"/"&Cstr(ExCount(1))
+					ABClick 300, 300
+				End If
+				If dm.FindPic(0 ,0 ,SizeX, SizeY, "ExTeam4.bmp", 000000, 0.9, dir, intX, intY) <> - 1  Then 
+					main.InExpedition4.Value = 0
+					If dm.FindPic(0, 0, SizeX, SizeY, "ExSuccess.bmp|ExSuperSuccess.bmp", 000000, 0.9, dir, intX, intY) <> - 1  Then 
+						ExSuccessCount(2) = ExSuccessCount(2) + 1
+					End If
+					ExCount(2) = ExCount(2) + 1
+					main.ExCount4.Caption = Cstr(ExSuccessCount(2))&"/"&Cstr(ExCount(2))
+					ABClick 300, 300
+				End If
+				
+				
+			Case 16//开始远征
+				If main.InExpedition2.Value = 0 and main.ExTeam2.Value = 1 Then 
+					GoExpedition main.ExAge2.ListIndex, main.ExStage2.ListIndex, 0
+					
+					main.InExpedition2.Value = 1
+				Else If main.InExpedition3.Value = 0 and main.ExTeam3.Value = 1 Then 
+					GoExpedition main.ExAge3.ListIndex, main.ExStage3.ListIndex, 1
+	
+					main.InExpedition3.Value = 1
+				Else If main.InExpedition4.Value = 0 and main.ExTeam4.Value = 1 Then 
+					GoExpedition main.ExAge4.ListIndex, main.ExStage4.ListIndex, 2
+
+					main.InExpedition4.Value = 1
+				End If
+				End If
+				End If
+
+				ABClick ExReturnX, ExReturnY
+				
 		End Select
 	End If
 Wend
